@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#060a1c">
+<title>Пульт хоста</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  body { padding: 0 0 40px; }
+  header { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: rgba(6,10,28,.85); backdrop-filter: blur(8px); z-index: 10; }
+  header h1 { font-size: 18px; }
+  .tabs { display: flex; gap: 4px; padding: 4px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line); }
+  .tabs button { padding: 7px 16px; border-radius: 999px; font-weight: 700; color: var(--mute); }
+  .tabs button.on { background: #1b2668; color: var(--ink); }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; padding: 20px 24px; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; padding: 14px 16px; } header { padding: 12px 16px; } }
+  aside { display: flex; flex-direction: column; gap: 16px; }
+  aside h3 { font-size: 14px; color: var(--mute); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .invite { display: flex; gap: 14px; align-items: center; }
+  #qr { background: #fff; padding: 8px; border-radius: 10px; flex: none; line-height: 0; }
+  #qr img, #qr canvas { width: 116px !important; height: 116px !important; }
+  .url { font-family: var(--display); font-size: 14px; word-break: break-all; }
+  .pl { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #1a2350; }
+  .pl:last-child { border: 0; }
+  .pl .sc { font-family: var(--display); color: var(--gold); min-width: 56px; text-align: right; }
+  .stage { min-height: 60vh; }
+  .stage-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .stage-head h2 { font-size: 20px; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; align-items: center; }
+  .mill { display: grid; grid-template-columns: minmax(0,1fr) 210px; gap: 24px; align-items: start; }
+  @media (max-width: 1100px) { .mill { grid-template-columns: 1fr; } .mill .ladder { display: none; } }
+  .opts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; margin-top: 22px; }
+  @media (max-width: 700px) { .opts2 { grid-template-columns: 1fr; } }
+  .opts2 .opt > span { min-height: 68px; font-size: 19px; }
+  .qbar > div { font-size: clamp(20px, 2.2vw, 30px); }
+  .hint { font-size: 13px; color: var(--mute); }
+  .hint b { color: var(--ok); }
+  .gamecard { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #0b1235; border: 1px solid var(--line); }
+  .gamecard .k { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--mute); }
+  .lobby-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .lobby-grid { grid-template-columns: 1fr; } }
+  .now-cell { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: #0b1235; border: 1px solid var(--gold); margin-bottom: 16px; }
+  .now-cell .who { font-family: var(--display); font-size: 22px; }
+  /* editor */
+  .ed { max-width: 980px; margin: 0 auto; padding: 20px 24px; }
+  @media (max-width: 700px) { .ed { padding: 14px 16px; } }
+  .eq { display: grid; gap: 8px; padding: 14px; border-radius: 12px; background: #0b1235; border: 1px solid var(--line); }
+  .eq .ans { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 600px) { .eq .ans { grid-template-columns: 1fr; } }
+  .eq .ans label { display: flex; gap: 8px; align-items: center; }
+  .eq .ans input[type=radio] { width: 20px; height: 20px; accent-color: var(--ok); flex: none; }
+  .ecells { display: grid; grid-template-columns: 80px 1fr; gap: 6px 8px; align-items: center; }
+  label.lbl { font-size: 13px; color: var(--mute); font-weight: 700; }
+  details summary { cursor: pointer; color: var(--gold); font-weight: 700; }
+  code { background: #0a1030; padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Пульт</h1>
+  <div class="tabs"><button data-tab="live" class="on">Игра</button><button data-tab="editor">Редактор игр</button></div>
+  <span class="grow"></span>
+  <span id="conn" class="mute" style="font-size:13px"></span>
+</header>
+
+<div id="login" hidden class="ed" style="max-width:420px;margin-top:12vh">
+  <div class="panel col">
+    <h2>Вход хоста</h2>
+    <p class="mute" style="margin:0">Ключ напечатан в окне сервера при запуске.</p>
+    <input id="key" placeholder="Ключ" autocomplete="off">
+    <button class="btn" id="kbtn">Войти</button>
+  </div>
+</div>
+
+<div id="live" hidden class="layout">
+  <section class="stage" id="stage"></section>
+  <aside>
+    <div class="panel">
+      <h3>Пригласить гостей <select id="urlSel" style="width:auto;padding:4px 8px;font-size:12px"></select></h3>
+      <div class="invite"><div id="qr"></div><div class="col" style="gap:6px"><div class="url" id="url"></div><span class="mute" style="font-size:13px">Гости на одном Wi-Fi с этим компьютером</span></div></div>
+    </div>
+    <div id="side"></div>
+  </aside>
+</div>
+
+<div id="editor" hidden class="ed"></div>
+
+<script src="config.js"></script><script src="common.js"></script>
+<script>
+const LADDER = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
+let key = new URLSearchParams(location.search).get('key');
+try { key = key || localStorage.getItem('hostKey'); } catch {}
+let S = null, tab = 'live', showHint = false, draft = null, step = 100;
+
+const net = connect({
+  open() { $('#conn').textContent = ''; if (key) net.send({ t: 'auth', key }); else showLogin(); },
+  close() { $('#conn').textContent = 'нет связи…'; },
+  auth(m) {
+    if (!m.ok) { try { localStorage.removeItem('hostKey'); } catch {} key = null; showLogin('Неверный ключ'); return; }
+    try { localStorage.setItem('hostKey', key); } catch {}
+    if (location.search) history.replaceState(null, '', location.pathname);
+    $('#login').hidden = true; setTab(tab);
+  },
+  state(m) {
+    const first = !S; S = m.s;
+    if (first) initInvite();
+    renderLive();
+    if (tab === 'editor' && !draft) renderEditorList();
+  },
+  saved() { toast('Сохранено'); },
+});
+
+function showLogin(err) {
+  $('#login').hidden = false; $('#live').hidden = true; $('#editor').hidden = true;
+  if (err) toast(err);
+  $('#kbtn').onclick = () => { key = $('#key').value.trim(); net.send({ t: 'auth', key }); };
+}
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+function setTab(t) {
+  tab = t;
+  document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $('#live').hidden = t !== 'live'; $('#editor').hidden = t !== 'editor';
+  if (t === 'editor') draft ? renderDraft() : renderEditorList();
+}
+const send = (t, o = {}) => net.send({ t, ...o });
+
+// ---------- invite ----------
+function initInvite() {
+  const local = /^(localhost|127\.|\[::1\])/.test(location.hostname);
+  const here = location.origin + location.pathname.replace(/host(\.html)?$/, '');
+  const opts = local ? S.urls : [here, ...S.urls];
+  if (!opts.length) opts.push(location.origin);
+  let saved; try { saved = localStorage.getItem('inviteUrl'); } catch {}
+  const sel = $('#urlSel');
+  sel.innerHTML = opts.map(u => `<option>${esc(u)}</option>`).join('');
+  if (saved && opts.includes(saved)) sel.value = saved;
+  sel.onchange = () => { try { localStorage.setItem('inviteUrl', sel.value); } catch {} drawQr(sel.value); };
+  sel.hidden = opts.length < 2;
+  drawQr(sel.value);
+}
+function drawQr(u) {
+  $('#url').textContent = u.replace(/^https?:\/\//, '');
+  $('#qr').innerHTML = '';
+  if (window.QRCode) new QRCode($('#qr'), { text: u, width: 232, height: 232, correctLevel: QRCode.CorrectLevel.M });
+}
+
+// ---------- live ----------
+function renderLive() {
+  if (!S) return;
+  // side
+  let s = '';
+  if (S.pending.length) {
+    s += `<div class="panel" style="border-color:var(--sel)"><h3>Хотят войти · ${S.pending.length} <button class="btn sm ok" data-act="approveAll">Пустить всех</button></h3>` +
+      S.pending.map(p => `<div class="pl"><span class="grow" style="font-weight:700">${esc(p.name)}</span>
+        <button class="btn sm ok" data-act="approve" data-pid="${p.id}">Пустить</button>
+        <button class="icon-btn" title="Не пускать" data-act="reject" data-pid="${p.id}">✕</button></div>`).join('') + `</div>`;
+  }
+  s += `<div class="panel"><h3>Игроки · ${S.players.length}
+      <span class="row" style="gap:6px"><select id="step" style="width:auto;padding:4px 8px;font-size:12px">${[50, 100, 200, 500, 1000].map(v => `<option ${v === step ? 'selected' : ''}>${v}</option>`).join('')}</select>
+      <button class="btn sm ghost" data-act="resetScores" data-confirm="Обнулить все очки?">Сброс</button></span></h3>` +
+    (S.players.length ? S.players.map(p => `<div class="pl ${p.online ? '' : 'off'}">
+      <span class="grow">${esc(p.name)}</span>
+      <button class="icon-btn" data-act="score" data-pid="${p.id}" data-d="-1">−</button>
+      <span class="sc">${fmt(p.score)}</span>
+      <button class="icon-btn" data-act="score" data-pid="${p.id}" data-d="1">+</button>
+      ${S.mode === 'melody' ? `<button class="icon-btn" title="Дать выбор клетки" data-act="setChooser" data-pid="${p.id}">☝</button>` : ''}
+      <button class="icon-btn" title="Удалить" data-act="reject" data-pid="${p.id}" data-confirm="Удалить игрока ${esc(p.name)}?">✕</button></div>`).join('')
+      : '<p class="mute" style="margin:0">Пока никого. Покажи QR гостям.</p>') + `</div>`;
+  $('#side').innerHTML = s;
+  $('#step').onchange = e => step = +e.target.value;
+
+  // stage
+  let h = '';
+  if (S.mode === 'lobby') h = lobby();
+  else if (S.mode === 'final') h = `<div class="stage-head"><h2>Итоги</h2><span class="grow"></span><button class="btn ghost" data-act="lobby">В лобби</button></div><div style="max-width:620px">${leaderboard(S.players)}</div>`;
+  else if (S.mode === 'mill' && S.mill) h = millStage(S.mill);
+  else if (S.mode === 'melody' && S.melody) h = melodyStage(S.melody);
+  $('#stage').innerHTML = h;
+  bind(document.getElementById('live'));
+}
+
+function bind(root) {
+  root.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
+    const d = b.dataset;
+    if (d.confirm && !confirm(d.confirm)) return;
+    const o = {};
+    if (d.pid) o.pid = d.pid;
+    if (d.id) o.id = d.id;
+    if (d.ok) o.ok = d.ok === '1';
+    if (d.d) o.delta = +d.d * step;
+    send(d.act, o);
+  });
+  root.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { const [c, r] = b.dataset.pick.split(','); send('pick', { c: +c, r: +r }); });
+  root.querySelectorAll('[data-hint]').forEach(b => b.onclick = () => { showHint = !showHint; renderLive(); });
+}
+
+function lobby() {
+  const card = (g, kind) => `<div class="gamecard"><div class="grow"><div style="font-weight:800">${esc(g.title)}</div>
+    <div class="mute" style="font-size:13px">${kind === 'millionaire' ? g.questions.length + ' вопросов' : g.categories.length + ' категорий'}</div></div>
+    <button class="btn sm" data-act="${kind === 'millionaire' ? 'startMill' : 'startMelody'}" data-id="${g.id}">Начать</button></div>`;
+  return `<div class="stage-head"><h2>Лобби</h2><span class="mute">Гости заходят по QR справа. Ты их пускаешь.</span></div>
+  <div class="lobby-grid">
+    <div class="panel col"><div class="k mute" style="font-weight:700">Кто хочет стать миллионером</div>
+      ${S.games.millionaire.map(g => card(g, 'millionaire')).join('') || '<p class="mute">Нет игр — создай в редакторе</p>'}</div>
+    <div class="panel col"><div class="k mute" style="font-weight:700">Угадай мелодию</div>
+      ${S.games.melody.map(g => card(g, 'melody')).join('') || '<p class="mute">Нет игр — создай в редакторе</p>'}</div>
+  </div>
+  <div style="margin-top:24px;max-width:620px"><h3 class="mute" style="font-size:14px;margin-bottom:10px">Таблица</h3>${leaderboard(S.players)}</div>`;
+}
+
+function millStage(m) {
+  let h = `<div class="stage-head"><span class="tag">${esc(m.title)}</span><h2>Вопрос ${m.idx + 1} / ${m.total}</h2><span class="num gold" style="font-size:20px">${fmt(m.value)}</span>
+    <span class="grow"></span><button class="btn sm ghost" data-hint>${showHint ? 'Скрыть ответ' : 'Подсмотреть ответ'}</button></div>
+  <div class="mill"><div>
+    <div class="qbar"><div>${esc(m.q)}</div></div>
+    <div class="opts2">`;
+  m.a.forEach((t, i) => {
+    let c = m.hidden.includes(i) ? 'gone' : '';
+    if (m.phase !== 'question' && i === m.correct) c = 'right';
+    const cnt = m.counts ? `<span class="cnt">${m.counts[i]}</span>` : '';
+    h += `<div class="opt ${c}"><span><b>${L[i]}:</b> ${esc(t)}${cnt}</span></div>`;
+  });
+  h += `</div>`;
+  if (showHint) h += `<p class="hint" style="margin-top:12px">Правильный: <b>${L[m.correct]}</b>${m.answers.length ? ' · ' + m.answers.map(a => esc(a.name) + ' → ' + L[a.a]).join(', ') : ''}</p>`;
+  h += `<div class="controls">`;
+  if (m.phase === 'question') {
+    h += `<span class="tag" style="font-size:15px">Ответили ${m.answered} из ${m.players}</span>
+      <button class="btn ghost" data-act="fifty" ${m.hidden.length ? 'disabled' : ''}>50 : 50</button>
+      <button class="btn" data-act="millReveal">Показать ответ</button>`;
+  } else {
+    h += `<button class="btn" data-act="millNext">${m.idx + 1 < m.total ? 'Следующий вопрос →' : 'К итогам'}</button>`;
+  }
+  h += `<span class="grow"></span><button class="btn sm ghost" data-act="lobby" data-confirm="Прервать игру и вернуться в лобби?">В лобби</button></div></div>
+    <div class="ladder">${m.ladder.map((v, i) => `<div class="${i < m.idx ? 'past' : i === m.idx ? 'now' : ''}"><span>${i + 1}</span><span>${fmt(v)}</span></div>`).join('')}</div></div>`;
+  return h;
+}
+
+function melodyStage(m) {
+  let h = `<div class="stage-head"><span class="tag">${esc(m.title)}</span><h2>Угадай мелодию</h2><span class="grow"></span>
+    <button class="btn sm ghost" data-hint>${showHint ? 'Скрыть ответы' : 'Показать ответы'}</button>
+    <button class="btn sm ghost" data-act="final">К итогам</button>
+    <button class="btn sm ghost" data-act="lobby" data-confirm="Прервать игру и вернуться в лобби?">В лобби</button></div>`;
+  if (m.cur) {
+    h += `<div class="now-cell pop"><div><div class="mute" style="font-size:13px">${esc(m.cur.cat)} · ${m.cur.points}</div>`;
+    if (m.phase === 'open') h += `<div class="who">Включай музыку — ждём кнопку</div>${m.lockedNames.length ? `<div class="mute" style="font-size:13px">Уже ошиблись: ${m.lockedNames.map(esc).join(', ')}</div>` : ''}`;
+    else h += `<div class="who">Отвечает <span class="gold">${esc(m.buzzName)}</span></div>`;
+    h += `<div class="hint" style="margin-top:4px">${showHint ? 'Ответ: <b>' + esc(m.answer) + '</b>' : ''}</div></div><span class="grow"></span><div class="row wrap">`;
+    if (m.phase === 'buzzed') h += `<button class="btn ok" data-act="judge" data-ok="1">Верно +${m.cur.points}</button><button class="btn bad" data-act="judge" data-ok="0">Неверно −${m.cur.points}</button>`;
+    h += `<button class="btn sm ghost" data-act="closeCell" title="Клетка сгорает">Никто не угадал</button>
+      <button class="btn sm ghost" data-act="cancelCell" title="Вернуть клетку на поле">Отменить</button></div></div>`;
+  } else {
+    h += `<p class="mute" style="margin:0 0 14px">${m.chooserName ? 'Выбирает <b class="gold">' + esc(m.chooserName) + '</b> с телефона — или нажми клетку сам.' : 'Нажми клетку, чтобы начать раунд.'}
+      ${m.last ? ` · Последняя: <b>${esc(m.last.answer)}</b>${m.last.winner ? ' — ' + esc(m.last.winner) : ''}` : ''}</p>`;
+  }
+  h += boardHtml(m, true);
+  if (showHint) h += `<div class="hint" style="margin-top:14px">${m.categories.map((c, ci) => `<div><b style="color:var(--ink)">${esc(c.name)}:</b> ${m.allCells[ci].map((a, ri) => c.cells[ri].points + ' — ' + esc(a)).join(' · ')}</div>`).join('')}</div>`;
+  return h;
+}
+
+// ---------- editor ----------
+function renderEditorList() {
+  if (!S) return;
+  const row = (g, kind) => `<div class="gamecard"><div class="grow"><div style="font-weight:800">${esc(g.title)}</div>
+    <div class="mute" style="font-size:13px">${kind === 'millionaire' ? g.questions.length + ' вопросов' : g.categories.length + ' категорий'}</div></div>
+    <button class="btn sm ghost" data-edit="${kind}|${g.id}">Изменить</button>
+    <button class="btn sm ghost" data-copy="${kind}|${g.id}">Копия</button>
+    <button class="icon-btn" data-del="${kind}|${g.id}" title="Удалить">✕</button></div>`;
+  const el = $('#editor');
+  el.innerHTML = `<div class="col" style="gap:22px">
+    <div class="col"><div class="row"><h2 class="grow" style="font-size:18px">Кто хочет стать миллионером</h2><button class="btn sm" data-new="millionaire">+ Новая игра</button></div>
+      ${S.games.millionaire.map(g => row(g, 'millionaire')).join('') || '<p class="mute">Пусто</p>'}</div>
+    <div class="col"><div class="row"><h2 class="grow" style="font-size:18px">Угадай мелодию</h2><button class="btn sm" data-new="melody">+ Новая игра</button></div>
+      ${S.games.melody.map(g => row(g, 'melody')).join('') || '<p class="mute">Пусто</p>'}</div></div>`;
+  const get = v => { const [k, id] = v.split('|'); return [k, S.games[k].find(g => g.id === id)]; };
+  el.querySelectorAll('[data-new]').forEach(b => b.onclick = () => {
+    const kind = b.dataset.new;
+    draft = { kind, g: kind === 'millionaire'
+      ? { title: 'Новый миллионер', questions: [blankQ(0)] }
+      : { title: 'Новая угадайка', categories: [blankCat('Категория 1'), blankCat('Категория 2'), blankCat('Категория 3')] } };
+    renderDraft();
+  });
+  el.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const [k, g] = get(b.dataset.edit); draft = { kind: k, g: structuredClone(g) }; renderDraft(); });
+  el.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { const [k, g] = get(b.dataset.copy); const c = structuredClone(g); delete c.id; c.title += ' (копия)'; send('saveGame', { kind: k, game: c }); });
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const [k, g] = get(b.dataset.del); if (confirm('Удалить «' + g.title + '»?')) send('deleteGame', { kind: k, id: g.id }); });
+}
+const blankQ = i => ({ q: '', a: ['', '', '', ''], correct: 0, value: LADDER[i] ?? LADDER[LADDER.length - 1] });
+const blankCat = name => ({ name, cells: [100, 200, 300, 400, 500].map(points => ({ points, answer: '' })) });
+
+function renderDraft() {
+  const { kind, g } = draft, el = $('#editor');
+  let h = `<div class="row" style="margin-bottom:16px"><button class="btn sm ghost" id="back">← Назад</button><span class="grow"></span><button class="btn" id="save">Сохранить</button></div>
+    <div class="col"><label class="lbl">Название</label><input data-f="title" value="${esc(g.title)}"></div>`;
+  if (kind === 'millionaire') {
+    h += `<details class="panel" style="margin:16px 0"><summary>Быстрый ввод текстом</summary>
+      <p class="mute" style="font-size:14px">Блоки через пустую строку. Первая строка — вопрос, дальше 4 ответа, правильный отметь <code>*</code> в начале. Деньги расставятся по лесенке.</p>
+      <textarea id="bulk" rows="8" placeholder="Какого цвета небо?\n*Голубое\nЗелёное\nКрасное\nЖёлтое\n\nСледующий вопрос?\n..."></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn sm" id="bulkAdd">Добавить к вопросам</button><button class="btn sm ghost" id="bulkRep">Заменить все</button></div></details>
+      <div class="col">` + g.questions.map((q, i) => `<div class="eq">
+        <div class="row"><span class="tag">${i + 1}</span><span class="grow"></span>
+          <label class="lbl">Цена</label><input type="number" style="width:120px" data-f="questions.${i}.value" value="${q.value}">
+          <button class="icon-btn" data-up="${i}" title="Выше">↑</button><button class="icon-btn" data-rm="${i}" title="Удалить">✕</button></div>
+        <input data-f="questions.${i}.q" placeholder="Вопрос" value="${esc(q.q)}">
+        <div class="ans">${q.a.map((a, j) => `<label><input type="radio" name="c${i}" data-c="${i}" value="${j}" ${q.correct === j ? 'checked' : ''}><b class="gold num">${L[j]}</b><input data-f="questions.${i}.a.${j}" value="${esc(a)}" placeholder="Ответ ${L[j]}"></label>`).join('')}</div>
+        <span class="hint">Отметь кружком правильный ответ</span></div>`).join('') + `</div>
+      <button class="btn ghost" id="addQ" style="margin-top:14px">+ Вопрос</button>`;
+  } else {
+    h += `<details class="panel" style="margin:16px 0"><summary>Быстрый ввод текстом</summary>
+      <p class="mute" style="font-size:14px">Одна строка — одна категория: <code>Название: песня1; песня2; песня3; песня4; песня5</code>. Очки 100, 200, 300…</p>
+      <textarea id="bulk" rows="5" placeholder="Хиты 2000-х: Песня — Артист; Песня — Артист; ..."></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn sm" id="bulkAdd">Добавить категории</button><button class="btn sm ghost" id="bulkRep">Заменить все</button></div></details>
+      <p class="mute" style="font-size:14px">В ответе пиши название песни — его видишь только ты и все после раунда. Саму музыку включаешь сам.</p>
+      <div class="col">` + g.categories.map((c, i) => `<div class="eq">
+        <div class="row"><input data-f="categories.${i}.name" value="${esc(c.name)}" placeholder="Категория" style="font-weight:700">
+          <button class="icon-btn" data-up="${i}" title="Выше">↑</button><button class="icon-btn" data-rm="${i}" title="Удалить">✕</button></div>
+        <div class="ecells">${c.cells.map((x, j) => `<input type="number" data-f="categories.${i}.cells.${j}.points" value="${x.points}"><input data-f="categories.${i}.cells.${j}.answer" value="${esc(x.answer)}" placeholder="Песня — исполнитель">`).join('')}</div></div>`).join('') + `</div>
+      <button class="btn ghost" id="addQ" style="margin-top:14px">+ Категория</button>`;
+  }
+  el.innerHTML = h;
+  const list = kind === 'millionaire' ? g.questions : g.categories;
+
+  el.querySelectorAll('[data-f]').forEach(inp => inp.oninput = () => {
+    const ks = inp.dataset.f.split('.'); let o = g;
+    for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]];
+    o[ks.at(-1)] = inp.type === 'number' ? +inp.value : inp.value;
+  });
+  el.querySelectorAll('[data-c]').forEach(r => r.onchange = () => { g.questions[+r.dataset.c].correct = +r.value; });
+  el.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { list.splice(+b.dataset.rm, 1); renderDraft(); });
+  el.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const i = +b.dataset.up; if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; renderDraft(); } });
+  $('#addQ').onclick = () => { list.push(kind === 'millionaire' ? blankQ(list.length) : blankCat('Категория ' + (list.length + 1))); renderDraft(); };
+  const bulk = replace => {
+    const items = kind === 'millionaire' ? parseMill($('#bulk').value) : parseMel($('#bulk').value);
+    if (!items.length) return toast('Не получилось разобрать текст');
+    if (replace) list.length = 0;
+    if (kind === 'millionaire') items.forEach(q => { q.value = LADDER[list.length] ?? LADDER.at(-1); list.push(q); }); else list.push(...items);
+    renderDraft(); toast('Добавлено: ' + items.length);
+  };
+  $('#bulkAdd').onclick = () => bulk(false);
+  $('#bulkRep').onclick = () => confirm('Заменить все текущие?') && bulk(true);
+  $('#back').onclick = () => { if (confirm('Выйти без сохранения?')) { draft = null; renderEditorList(); } };
+  $('#save').onclick = () => {
+    if (kind === 'millionaire' && g.questions.some(q => !q.q.trim())) return toast('Есть пустой вопрос');
+    send('saveGame', { kind, game: g }); draft = null; setTimeout(renderEditorList, 150);
+  };
+}
+
+function parseMill(t) {
+  return t.replace(/\r/g, '').split(/\n\s*\n/).map(b => b.split('\n').map(s => s.trim()).filter(Boolean)).filter(b => b.length >= 5).map(b => {
+    const ans = b.slice(1, 5); let correct = ans.findIndex(a => a.startsWith('*')); if (correct < 0) correct = 0;
+    return { q: b[0], a: ans.map(a => a.replace(/^\*\s*/, '')), correct, value: 0 };
+  });
+}
+function parseMel(t) {
+  return t.replace(/\r/g, '').split('\n').map(s => s.trim()).filter(s => s.includes(':')).map(s => {
+    const i = s.indexOf(':'); const songs = s.slice(i + 1).split(';').map(x => x.trim()).filter(Boolean);
+    return { name: s.slice(0, i).trim(), cells: songs.map((answer, j) => ({ points: (j + 1) * 100, answer })) };
+  }).filter(c => c.cells.length);
+}
+</script>
+</body>
+</html>
