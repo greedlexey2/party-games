@@ -132,7 +132,8 @@ const send = (t, o = {}) => net.send({ t, ...o });
 function initInvite() {
   const local = /^(localhost|127\.|\[::1\])/.test(location.hostname);
   const here = location.origin + location.pathname.replace(/host(\.html)?$/, '');
-  const opts = local ? S.urls : [here, ...S.urls];
+  const opts = window.GAME_SERVER ? [here] : local ? S.urls : [here, ...S.urls];
+  if (window.GAME_SERVER) $('#url').nextElementSibling.textContent = 'Отсканируй камерой телефона';
   if (!opts.length) opts.push(location.origin);
   let saved; try { saved = localStorage.getItem('inviteUrl'); } catch {}
   const sel = $('#urlSel');
