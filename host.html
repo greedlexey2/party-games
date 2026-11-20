@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#060a1c">
+<meta name="theme-color" content="#120e33">
 <title>Пульт хоста</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=7">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   body { padding: 0 0 40px; }
-  header { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: rgba(6,10,28,.85); backdrop-filter: blur(8px); z-index: 10; }
+  header { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 10; }
   header h1 { font-size: 18px; }
   .tabs { display: flex; gap: 4px; padding: 4px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line); }
   .tabs button { padding: 7px 16px; border-radius: 999px; font-weight: 700; color: var(--mute); }
-  .tabs button.on { background: #1b2668; color: var(--ink); }
+  .tabs button.on { background: var(--line); color: var(--ink); }
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; padding: 20px 24px; max-width: 1500px; margin: 0 auto; }
   @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); padding: 14px 16px; } header { padding: 12px 16px; } }
   aside { display: flex; flex-direction: column; gap: 16px; }
@@ -24,7 +24,7 @@
   #qr { background: #fff; padding: 8px; border-radius: 10px; flex: none; line-height: 0; }
   #qr img, #qr canvas { width: 116px !important; height: 116px !important; }
   .url { font-family: var(--display); font-size: 14px; word-break: break-all; }
-  .pl { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #1a2350; }
+  .pl { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); }
   .pl:last-child { border: 0; }
   .pl .sc { font-family: var(--display); color: var(--gold); min-width: 56px; text-align: right; }
   .stage { min-height: 60vh; }
@@ -33,8 +33,6 @@
   .stage-head .tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .stage, .stage *, aside, .panel { min-width: 0; }
   .gamecard .grow, .pl .grow { overflow-wrap: anywhere; }
-  .lifeline { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: #0b1235; border: 1px solid var(--gold); overflow-wrap: anywhere; }
-  .lifeline .k { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--gold); font-weight: 800; }
   aside h3 { flex-wrap: wrap; gap: 8px; }
   @media (max-width: 520px) {
     header { gap: 10px; flex-wrap: wrap; }
@@ -54,16 +52,16 @@
   .qbar > div { font-size: clamp(20px, 2.2vw, 30px); }
   .hint { font-size: 13px; color: var(--mute); }
   .hint b { color: var(--ok); }
-  .gamecard { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #0b1235; border: 1px solid var(--line); }
+  .gamecard { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--well); border: 1px solid var(--line); }
   .gamecard .k { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--mute); }
   .lobby-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 700px) { .lobby-grid { grid-template-columns: 1fr; } }
-  .now-cell { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: #0b1235; border: 1px solid var(--gold); margin-bottom: 16px; }
+  .now-cell { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: var(--well); border: 1px solid var(--gold); margin-bottom: 16px; }
   .now-cell .who { font-family: var(--display); font-size: 22px; }
   /* editor */
   .ed { max-width: 980px; margin: 0 auto; padding: 20px 24px; }
   @media (max-width: 700px) { .ed { padding: 14px 16px; } }
-  .eq { display: grid; gap: 8px; padding: 14px; border-radius: 12px; background: #0b1235; border: 1px solid var(--line); }
+  .eq { display: grid; gap: 8px; padding: 14px; border-radius: 12px; background: var(--well); border: 1px solid var(--line); }
   .eq .ans { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   @media (max-width: 600px) { .eq .ans { grid-template-columns: 1fr; } }
   .eq .ans label { display: flex; gap: 8px; align-items: center; }
@@ -71,7 +69,7 @@
   .ecells { display: grid; grid-template-columns: 80px 1fr; gap: 6px 8px; align-items: center; }
   label.lbl { font-size: 13px; color: var(--mute); font-weight: 700; }
   details summary { cursor: pointer; color: var(--gold); font-weight: 700; }
-  code { background: #0a1030; padding: 1px 6px; border-radius: 6px; }
+  code { background: var(--well); padding: 1px 6px; border-radius: 6px; }
 </style>
 </head>
 <body>
@@ -108,7 +106,7 @@
 
 <div id="editor" hidden class="ed"></div>
 
-<script src="config.js?v=6"></script><script src="common.js?v=6"></script>
+<script src="config.js?v=7"></script><script src="common.js?v=7"></script>
 <script>
 const LADDER = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
 let key = new URLSearchParams(location.search).get('key');
@@ -232,14 +230,13 @@ function bind(root) {
 function lobby() {
   const card = (g, kind) => `<div class="gamecard"><div class="grow"><div style="font-weight:800">${esc(g.title)}</div>
     <div class="mute" style="font-size:13px">${kind === 'millionaire' ? g.questions.length + ' вопросов' : g.categories.length + ' категорий'}</div></div>
+    <button class="icon-btn" title="Изменить" data-goedit="${kind}|${g.id}">✎</button>
     <button class="btn sm" data-act="${kind === 'millionaire' ? 'startMill' : 'startMelody'}" data-id="${g.id}">Начать</button></div>`;
-  return `<div class="stage-head"><h2>Лобби</h2><span class="mute">Гости заходят по QR справа. Ты их пускаешь.</span></div>
-  <div class="lobby-grid">
-    <div class="panel col"><div class="k mute" style="font-weight:700">Кто хочет стать миллионером</div>
-      ${S.games.millionaire.map(g => card(g, 'millionaire')).join('') || '<p class="mute">Нет игр — создай в редакторе</p>'}</div>
-    <div class="panel col"><div class="k mute" style="font-weight:700">Угадай мелодию</div>
-      ${S.games.melody.map(g => card(g, 'melody')).join('') || '<p class="mute">Нет игр — создай в редакторе</p>'}</div>
-  </div>
+  const col = (kind, name) => `<div class="panel col"><div class="row"><h3 class="grow" style="font-size:15px">${name}</h3>
+      <button class="btn sm ghost" data-gonew="${kind}">+ Вариант</button></div>
+      ${S.games[kind].map(g => card(g, kind)).join('') || '<p class="mute" style="margin:0">Пока нет ни одного варианта</p>'}</div>`;
+  return `<div class="stage-head"><h2>Лобби</h2><span class="mute">Гости заходят по QR, ты их пускаешь. Потом выбери игру.</span></div>
+  <div class="lobby-grid">${col('millionaire', 'Кто хочет стать миллионером')}${col('melody', 'Угадай мелодию')}</div>
   <div style="margin-top:24px;max-width:620px"><h3 class="mute" style="font-size:14px;margin-bottom:10px">Таблица</h3>${leaderboard(S.players)}</div>`;
 }
 
@@ -295,6 +292,18 @@ function melodyStage(m) {
 }
 
 // ---------- editor ----------
+function newDraft(kind) {
+  draft = { kind, g: kind === 'millionaire'
+    ? { title: 'Миллионер — вариант ' + (S.games.millionaire.length + 1), questions: [blankQ(0)] }
+    : { title: 'Угадай мелодию — вариант ' + (S.games.melody.length + 1), categories: [blankCat('Категория 1'), blankCat('Категория 2'), blankCat('Категория 3')] } };
+  setTab('editor');
+}
+// Lobby shortcuts: "+ Вариант" and the pencil on a game card jump straight into the editor.
+document.addEventListener('click', e => {
+  const n = e.target.closest('[data-gonew]'); if (n) return newDraft(n.dataset.gonew);
+  const ed = e.target.closest('[data-goedit]');
+  if (ed) { const [k, id] = ed.dataset.goedit.split('|'); const g = S.games[k].find(x => x.id === id); if (g) { draft = { kind: k, g: structuredClone(g) }; setTab('editor'); } }
+});
 function renderEditorList() {
   if (!S) return;
   const row = (g, kind) => `<div class="gamecard"><div class="grow"><div style="font-weight:800">${esc(g.title)}</div>
@@ -309,13 +318,7 @@ function renderEditorList() {
     <div class="col"><div class="row"><h2 class="grow" style="font-size:18px">Угадай мелодию</h2><button class="btn sm" data-new="melody">+ Новая игра</button></div>
       ${S.games.melody.map(g => row(g, 'melody')).join('') || '<p class="mute">Пусто</p>'}</div></div>`;
   const get = v => { const [k, id] = v.split('|'); return [k, S.games[k].find(g => g.id === id)]; };
-  el.querySelectorAll('[data-new]').forEach(b => b.onclick = () => {
-    const kind = b.dataset.new;
-    draft = { kind, g: kind === 'millionaire'
-      ? { title: 'Новый миллионер', questions: [blankQ(0)] }
-      : { title: 'Новая угадайка', categories: [blankCat('Категория 1'), blankCat('Категория 2'), blankCat('Категория 3')] } };
-    renderDraft();
-  });
+  el.querySelectorAll('[data-new]').forEach(b => b.onclick = () => newDraft(b.dataset.new));
   el.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const [k, g] = get(b.dataset.edit); draft = { kind: k, g: structuredClone(g) }; renderDraft(); });
   el.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { const [k, g] = get(b.dataset.copy); const c = structuredClone(g); delete c.id; c.title += ' (копия)'; send('saveGame', { kind: k, game: c }); });
   el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const [k, g] = get(b.dataset.del); if (confirm('Удалить «' + g.title + '»?')) send('deleteGame', { kind: k, id: g.id }); });

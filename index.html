@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#060a1c">
+<meta name="theme-color" content="#120e33">
 <title>Игра</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=7">
 <style>
   body { padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); }
   main { max-width: 520px; margin: 0 auto; }
@@ -22,50 +22,47 @@
   .board .cat { grid-template-columns: repeat(var(--n,5), minmax(0, 1fr)); }
   .top span:first-child, .hero h1, .q, .big-msg { overflow-wrap: anywhere; }
   .top span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; }
-  .lifeline { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #0b1235; border: 1px solid var(--gold); overflow-wrap: anywhere; }
-  .lifeline .k { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--gold); font-weight: 800; }
   .board .cname { grid-column: 1 / -1; background: none; border: 0; padding: 6px 2px 0; color: var(--mute); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
   .cell { min-height: 48px; font-size: 15px; }
 </style>
 </head>
 <body>
 <main id="app"></main>
-<script src="config.js?v=6"></script><script src="common.js?v=6"></script>
+<script src="config.js?v=7"></script><script src="common.js?v=7"></script>
 <script>
 let pid = null;
 try { pid = localStorage.getItem('pid'); } catch {}
 if (!pid) { pid = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now()); try { localStorage.setItem('pid', pid); } catch {} }
-let name = ''; try { name = localStorage.getItem('pname') || ''; } catch {}
+let name = '';
 let S = null, joined = false, lastBuzz = null;
 const app = $('#app');
 
 const net = connect({
-  open() { if (joined || name) net.send({ t: 'join', pid, name }); },
+  open() { net.send({ t: 'join', pid }); }, // known device -> straight back in; new -> name form
   needName() { joined = false; renderJoin(); },
   rejected() { joined = false; S = null; app.innerHTML = `<div class="hero"><h1>Хост не пустил</h1><p class="mute">Можно попробовать ещё раз</p><button class="btn" onclick="location.reload()">Ещё раз</button></div>`; },
-  closed() { joined = false; S = null; app.innerHTML = `<div class="hero pop"><h1>Игра уже идёт</h1><p class="mute" style="margin-top:12px">Вход закрыт. Если ты уже играл(а) — введи то же имя, что было.</p><button class="btn" style="margin-top:18px" onclick="localStorage.removeItem('pname');location.reload()">Ввести имя</button></div>`; },
+  closed() { joined = false; S = null; app.innerHTML = `<div class="hero pop"><h1>Игра уже идёт</h1><p class="mute" style="margin-top:12px">Вход закрыт. Если ты уже играл(а) — введи то же имя, что было.</p><button class="btn" style="margin-top:18px" onclick="renderJoin()">Ввести имя</button></div>`; },
   pid(m) { pid = m.pid; try { localStorage.setItem('pid', pid); } catch {} },
   state(m) { S = m.s; S.at = Date.now(); joined = true; render(); },
 });
 
 function renderJoin() {
   app.innerHTML = `<div class="hero">
-    <p class="tag">Вечеринка</p>
-    <h1 style="margin-top:14px">Как тебя зовут?</h1>
-    <p class="mute">Имя увидят все в таблице очков</p>
+    <p class="tag">День рождения · игры</p>
+    <h1 style="margin-top:16px">Как тебя зовут?</h1>
+    <p class="mute">Напиши имя — под ним ты будешь в таблице очков.</p>
   </div>
   <form id="jf" class="col">
-    <input id="nm" maxlength="20" placeholder="Имя" autocomplete="off" value="${esc(name)}" required>
-    <button class="btn">Войти в комнату</button>
+    <input id="nm" maxlength="20" placeholder="Имя" autocomplete="off" required>
+    <button class="btn">Отправить заявку</button>
   </form>`;
   $('#jf').onsubmit = e => {
     e.preventDefault(); name = $('#nm').value.trim(); if (!name) return;
-    try { localStorage.setItem('pname', name); } catch {}
-    net.send({ t: 'join', pid, name });
+        net.send({ t: 'join', pid, name });
   };
   $('#nm').focus();
 }
-if (!name) renderJoin(); else app.innerHTML = '<p class="center mute" style="margin-top:40vh">Подключаемся…</p>';
+app.innerHTML = '<p class="center mute" style="margin-top:40vh">Подключаемся…</p>';
 
 function topBar() {
   return `<div class="top"><span class="mute">${esc(S.me.name)}</span><span class="score">${fmt(S.me.score)}</span></div>`;
@@ -74,7 +71,7 @@ function topBar() {
 function render() {
   if (!S || !S.me) return renderJoin();
   if (S.me.status === 'pending') {
-    app.innerHTML = `<div class="hero pop"><h1>${esc(S.me.name)}, ты почти внутри</h1><p class="mute" style="margin-top:12px">Ждём, пока хост тебя пустит</p></div>`;
+    app.innerHTML = `<div class="hero pop"><p class="tag">Заявка отправлена</p><h1 style="margin-top:16px">Ждём ведущего</h1><p class="mute" style="margin-top:12px">Он запустит всех в комнату, когда соберёмся. Не закрывай страницу.</p><p class="namecard">${esc(S.me.name)}</p></div>`;
     return;
   }
   let h = topBar();
