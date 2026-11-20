@@ -4,15 +4,21 @@ const fmt = n => (n ?? 0).toLocaleString('ru-RU');
 const L = 'ABCD';
 
 function connect(h) {
-  let ws;
+  let ws, retry = null;
   const api = { send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); } };
-  (function open() {
+  function open() {
+    clearTimeout(retry); retry = null;
     // On GitHub Pages config.js sets window.GAME_SERVER = 'wss://…'; locally — same host.
     ws = new WebSocket(window.GAME_SERVER || ((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host));
     ws.onopen = () => h.open && h.open();
-    ws.onmessage = e => { const m = JSON.parse(e.data); h[m.t] && h[m.t](m); };
-    ws.onclose = () => { h.close && h.close(); setTimeout(open, 1200); };
-  })();
+    ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; } try { h[m.t] && h[m.t](m); } catch (err) { console.error(err); } };
+    ws.onclose = () => { h.close && h.close(); if (!retry) retry = setTimeout(open, 1200); };
+  }
+  // Back from another app / screen lock: reconnect at once instead of waiting.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && ws && ws.readyState > 1) { ws.onclose = null; open(); }
+  });
+  open();
   return api;
 }
 
