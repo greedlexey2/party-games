@@ -7,7 +7,7 @@
 <title>Игра</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=6">
 <style>
   body { padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); }
   main { max-width: 520px; margin: 0 auto; }
@@ -19,14 +19,18 @@
   .q { font-size: 19px; font-weight: 700; line-height: 1.3; }
   .status { text-align: center; padding: 14px; font-weight: 700; }
   .big-msg { font-family: var(--display); font-size: 24px; text-align: center; margin: 22px 0 8px; }
-  .board .cat { grid-template-columns: repeat(var(--n,5), 1fr); }
+  .board .cat { grid-template-columns: repeat(var(--n,5), minmax(0, 1fr)); }
+  .top span:first-child, .hero h1, .q, .big-msg { overflow-wrap: anywhere; }
+  .top span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; }
+  .lifeline { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #0b1235; border: 1px solid var(--gold); overflow-wrap: anywhere; }
+  .lifeline .k { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--gold); font-weight: 800; }
   .board .cname { grid-column: 1 / -1; background: none; border: 0; padding: 6px 2px 0; color: var(--mute); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
   .cell { min-height: 48px; font-size: 15px; }
 </style>
 </head>
 <body>
 <main id="app"></main>
-<script src="config.js?v=4"></script><script src="common.js?v=4"></script>
+<script src="config.js?v=6"></script><script src="common.js?v=6"></script>
 <script>
 let pid = null;
 try { pid = localStorage.getItem('pid'); } catch {}
@@ -39,7 +43,9 @@ const net = connect({
   open() { if (joined || name) net.send({ t: 'join', pid, name }); },
   needName() { joined = false; renderJoin(); },
   rejected() { joined = false; S = null; app.innerHTML = `<div class="hero"><h1>Хост не пустил</h1><p class="mute">Можно попробовать ещё раз</p><button class="btn" onclick="location.reload()">Ещё раз</button></div>`; },
-  state(m) { S = m.s; joined = true; render(); },
+  closed() { joined = false; S = null; app.innerHTML = `<div class="hero pop"><h1>Игра уже идёт</h1><p class="mute" style="margin-top:12px">Вход закрыт. Если ты уже играл(а) — введи то же имя, что было.</p><button class="btn" style="margin-top:18px" onclick="localStorage.removeItem('pname');location.reload()">Ввести имя</button></div>`; },
+  pid(m) { pid = m.pid; try { localStorage.setItem('pid', pid); } catch {} },
+  state(m) { S = m.s; S.at = Date.now(); joined = true; render(); },
 });
 
 function renderJoin() {
@@ -97,7 +103,7 @@ function mill(m) {
     const dis = m.phase !== 'question' || m.mine !== undefined || m.hidden.includes(i);
     h += `<button class="opt ${c}" ${dis ? 'disabled' : `data-a="${i}"`}><span><b>${L[i]}:</b> ${esc(t)}</span></button>`;
   });
-  h += `</div>`;
+  h += `</div>` + lifelinesHtml(m, S.at);
   if (m.phase === 'question') h += `<div class="status ${m.mine !== undefined ? 'gold' : 'mute'}">${m.mine !== undefined ? 'Ответ принят. Ждём остальных' : 'Выбери ответ'}</div>`;
   else h += m.mine === m.correct
     ? `<div class="big-msg pop" style="color:var(--ok)">+${fmt(m.value)}</div>`

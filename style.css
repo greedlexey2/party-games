@@ -68,8 +68,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; letter-sp
   display: flex; gap: 10px; align-items: center; min-height: 58px; padding: 10px calc(var(--cut) + 8px);
   background: linear-gradient(180deg, var(--opt-a), var(--opt-b));
   clip-path: inherit; font-weight: 600; font-size: 17px;
+  min-width: 0; overflow-wrap: anywhere;
 }
-.opt b { color: var(--gold); font-family: var(--display); font-weight: 600; }
+.qbar > div, .lb .it .grow, .cname, .gamecard { overflow-wrap: anywhere; min-width: 0; }
+.opt b { flex: none; white-space: nowrap; color: var(--gold); font-family: var(--display); font-weight: 600; }
 .opt.sel { background: var(--gold-hi); }
 .opt.sel > span { background: linear-gradient(180deg, #ffb24a, var(--sel)); color: #1d0e00; }
 .opt.sel b { color: #1d0e00; }

@@ -7,7 +7,7 @@
 <title>Пульт хоста</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=6">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   body { padding: 0 0 40px; }
@@ -29,7 +29,22 @@
   .pl .sc { font-family: var(--display); color: var(--gold); min-width: 56px; text-align: right; }
   .stage { min-height: 60vh; }
   .stage-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
-  .stage-head h2 { font-size: 20px; }
+  .stage-head h2 { font-size: 20px; min-width: 0; overflow-wrap: anywhere; }
+  .stage-head .tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stage, .stage *, aside, .panel { min-width: 0; }
+  .gamecard .grow, .pl .grow { overflow-wrap: anywhere; }
+  .lifeline { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: #0b1235; border: 1px solid var(--gold); overflow-wrap: anywhere; }
+  .lifeline .k { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--gold); font-weight: 800; }
+  aside h3 { flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 520px) {
+    header { gap: 10px; flex-wrap: wrap; }
+    header h1 { font-size: 16px; }
+    .tabs button { padding: 6px 12px; font-size: 14px; }
+    .stage-head h2 { font-size: 17px; }
+    .controls .btn { flex: 1 1 auto; }
+    .qbar > div { font-size: 18px; padding: 16px 34px; }
+    .opts2 .opt > span { min-height: 56px; font-size: 16px; }
+  }
   .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; align-items: center; }
   .mill { display: grid; grid-template-columns: minmax(0,1fr) 210px; gap: 24px; align-items: start; }
   @media (max-width: 1100px) { .mill { grid-template-columns: 1fr; } .mill .ladder { display: none; } }
@@ -79,7 +94,11 @@
 <div id="live" hidden class="layout">
   <section class="stage" id="stage"></section>
   <aside>
-    <div class="panel">
+    <div class="panel" id="roomPanel">
+      <h3>Вход в комнату <button class="btn sm" id="openBtn"></button></h3>
+      <p class="mute" id="closedNote" style="margin:0;font-size:14px">Вход закрыт — новые гости не попадут. Вылетевшие игроки могут вернуться: та же ссылка или то же имя.</p>
+    </div>
+    <div class="panel" id="invitePanel">
       <h3>Пригласить гостей <select id="urlSel" style="width:auto;padding:4px 8px;font-size:12px"></select></h3>
       <div class="invite"><div id="qr"></div><div class="col" style="gap:6px"><div class="url" id="url"></div><span class="mute" style="font-size:13px">Гости на одном Wi-Fi с этим компьютером</span></div></div>
     </div>
@@ -89,7 +108,7 @@
 
 <div id="editor" hidden class="ed"></div>
 
-<script src="config.js?v=4"></script><script src="common.js?v=4"></script>
+<script src="config.js?v=6"></script><script src="common.js?v=6"></script>
 <script>
 const LADDER = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
 let key = new URLSearchParams(location.search).get('key');
@@ -106,7 +125,7 @@ const net = connect({
     $('#login').hidden = true; setTab(tab);
   },
   state(m) {
-    const first = !S; S = m.s;
+    const first = !S; S = m.s; S.at = Date.now();
     if (first) initInvite();
     renderLive();
     if (tab === 'editor' && !draft) renderEditorList();
@@ -173,6 +192,13 @@ function renderLive() {
       : '<p class="mute" style="margin:0">Пока никого. Покажи QR гостям.</p>') + `</div>`;
   $('#side').innerHTML = s;
   $('#step').onchange = e => step = +e.target.value;
+  // room open / closed
+  $('#invitePanel').hidden = !S.open;
+  $('#closedNote').hidden = S.open;
+  const ob = $('#openBtn');
+  ob.textContent = S.open ? 'Открыт · закрыть' : 'Закрыт · открыть';
+  ob.className = 'btn sm ' + (S.open ? 'ok' : 'ghost');
+  ob.onclick = () => send('setOpen', { open: !S.open });
 
   // stage
   let h = '';
@@ -196,6 +222,10 @@ function bind(root) {
     send(d.act, o);
   });
   root.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { const [c, r] = b.dataset.pick.split(','); send('pick', { c: +c, r: +r }); });
+  root.querySelectorAll('[data-life]').forEach(b => b.onclick = () => {
+    if (b.dataset.life === 'hint') { const t = prompt('Подсказка ведущего — её увидят все:'); if (t && t.trim()) send('hint', { text: t }); }
+    else { const w = prompt('Звонок другу: кому звоним? (можно оставить пустым)', ''); if (w !== null) send('call', { who: w }); }
+  });
   root.querySelectorAll('[data-hint]').forEach(b => b.onclick = () => { showHint = !showHint; renderLive(); });
 }
 
@@ -225,12 +255,14 @@ function millStage(m) {
     const cnt = m.counts ? `<span class="cnt">${m.counts[i]}</span>` : '';
     h += `<div class="opt ${c}"><span><b>${L[i]}:</b> ${esc(t)}${cnt}</span></div>`;
   });
-  h += `</div>`;
+  h += `</div>` + lifelinesHtml(m, S.at);
   if (showHint) h += `<p class="hint" style="margin-top:12px">Правильный: <b>${L[m.correct]}</b>${m.answers.length ? ' · ' + m.answers.map(a => esc(a.name) + ' → ' + L[a.a]).join(', ') : ''}</p>`;
   h += `<div class="controls">`;
   if (m.phase === 'question') {
     h += `<span class="tag" style="font-size:15px">Ответили ${m.answered} из ${m.players}</span>
-      <button class="btn ghost" data-act="fifty" ${m.hidden.length ? 'disabled' : ''}>50 : 50</button>
+      <button class="btn ghost" data-act="fifty" ${m.used.fifty ? 'disabled' : ''}>50 : 50</button>
+      <button class="btn ghost" data-life="hint" ${m.used.hint ? 'disabled' : ''}>Подсказка ведущего</button>
+      <button class="btn ghost" data-life="call" ${m.used.call ? 'disabled' : ''}>Звонок другу</button>
       <button class="btn" data-act="millReveal">Показать ответ</button>`;
   } else {
     h += `<button class="btn" data-act="millNext">${m.idx + 1 < m.total ? 'Следующий вопрос →' : 'К итогам'}</button>`;

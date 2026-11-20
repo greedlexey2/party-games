@@ -34,6 +34,19 @@ function boardHtml(mel, clickable) {
     }).join('') + `</div>`).join('') + `</div>`;
 }
 
+// Host hint + phone-a-friend countdown, shown on every screen during a Millionaire question.
+function lifelinesHtml(m, at) {
+  let h = '';
+  if (m.hint) h += `<div class="lifeline pop"><div class="k">Подсказка ведущего</div><div style="font-weight:700;margin-top:4px">${esc(m.hint)}</div></div>`;
+  if (m.callLeft > 0) h += `<div class="lifeline pop"><div class="k">Звонок другу${m.callWho ? ' · ' + esc(m.callWho) : ''}</div>
+    <div class="num" style="font-size:32px;margin-top:4px" data-until="${at + m.callLeft}">${Math.ceil(m.callLeft / 1000)}</div></div>`;
+  return h;
+}
+setInterval(() => document.querySelectorAll('[data-until]').forEach(el => {
+  const s = Math.max(0, Math.ceil((+el.dataset.until - Date.now()) / 1000));
+  el.textContent = s ? s : 'Время!';
+}), 250);
+
 function toast(t) {
   const d = document.createElement('div'); d.className = 'toast pop'; d.textContent = t;
   document.body.appendChild(d); setTimeout(() => d.remove(), 2200);
