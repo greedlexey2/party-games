@@ -98,7 +98,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; letter-sp
 
 /* melody board */
 .board { display: flex; flex-direction: column; gap: 8px; }
-.board .cat { display: grid; grid-template-columns: minmax(90px, 1.3fr) repeat(var(--n, 5), 1fr); gap: 6px; }
+.board .cat { display: grid; grid-template-columns: minmax(90px, 1.3fr) repeat(var(--n, 5), minmax(0, 1fr)); gap: 6px; }
+/* Narrow screens (host on a phone): category name on its own row, cells below */
+@media (max-width: 700px) {
+  .board .cat { grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); }
+  .board .cname { grid-column: 1 / -1; background: none; border: 0; padding: 6px 2px 0; color: var(--mute); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .cell { min-height: 48px; font-size: 15px; }
+}
 .board .cname {
   display: flex; align-items: center; padding: 8px 10px; border-radius: 10px;
   background: #0a1030; border: 1px solid var(--line); font-weight: 700; font-size: 14px; line-height: 1.15;
