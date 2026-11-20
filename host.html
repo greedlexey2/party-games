@@ -17,7 +17,7 @@
   .tabs button { padding: 7px 16px; border-radius: 999px; font-weight: 700; color: var(--mute); }
   .tabs button.on { background: #1b2668; color: var(--ink); }
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; padding: 20px 24px; max-width: 1500px; margin: 0 auto; }
-  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; padding: 14px 16px; } header { padding: 12px 16px; } }
+  @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); padding: 14px 16px; } header { padding: 12px 16px; } }
   aside { display: flex; flex-direction: column; gap: 16px; }
   aside h3 { font-size: 14px; color: var(--mute); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
   .invite { display: flex; gap: 14px; align-items: center; }
