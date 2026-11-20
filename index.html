@@ -7,7 +7,7 @@
 <title>Игра</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 <style>
   body { padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); }
   main { max-width: 520px; margin: 0 auto; }
@@ -28,7 +28,7 @@
 </head>
 <body>
 <main id="app"></main>
-<script src="config.js?v=7"></script><script src="common.js?v=7"></script>
+<script src="config.js?v=8"></script><script src="common.js?v=8"></script>
 <script>
 let pid = null;
 try { pid = localStorage.getItem('pid'); } catch {}
@@ -101,7 +101,9 @@ function mill(m) {
     h += `<button class="opt ${c}" ${dis ? 'disabled' : `data-a="${i}"`}><span><b>${L[i]}:</b> ${esc(t)}</span></button>`;
   });
   h += `</div>` + lifelinesHtml(m, S.at);
-  if (m.phase === 'question') h += `<div class="status ${m.mine !== undefined ? 'gold' : 'mute'}">${m.mine !== undefined ? 'Ответ принят. Ждём остальных' : 'Выбери ответ'}</div>`;
+  if (m.phase === 'question') h += `<div class="status ${m.mine !== undefined ? 'gold' : 'mute'}">${m.mine === undefined ? 'Выбери ответ'
+    : m.answered >= m.players ? 'Ответ принят. Ведущий сейчас покажет правильный'
+    : `Ответ принят. Ответили ${m.answered} из ${m.players}`}</div>`;
   else h += m.mine === m.correct
     ? `<div class="big-msg pop" style="color:var(--ok)">+${fmt(m.value)}</div>`
     : `<div class="status" style="color:var(--bad)">${m.mine === undefined ? 'Ты не успел(а) ответить' : 'Мимо'}</div>`;
