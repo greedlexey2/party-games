@@ -7,7 +7,7 @@
 <title>Пульт хоста</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   body { padding: 0 0 40px; }
@@ -58,6 +58,10 @@
   @media (max-width: 700px) { .lobby-grid { grid-template-columns: 1fr; } }
   .now-cell { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: var(--well); border: 1px solid var(--gold); margin-bottom: 16px; }
   .now-cell .who { font-family: var(--display); font-size: 22px; }
+  .buzzed { margin-bottom: 16px; padding: 18px 20px; border-radius: 14px; background: var(--sel); color: #1f0d00; border: 3px solid #a54800; box-shadow: 0 6px 0 #a54800; }
+  .buzzed .k { font-family: var(--mono); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; opacity: .85; }
+  .buzzed .name { font-family: var(--display); font-size: clamp(30px, 7vw, 64px); line-height: 1.05; margin-top: 6px; overflow-wrap: anywhere; }
+  .buzzed .btn.ghost { color: #1f0d00; background: rgba(255,255,255,.35); border-color: #a54800; box-shadow: 0 3px 0 #a54800; }
   /* editor */
   .ed { max-width: 980px; margin: 0 auto; padding: 20px 24px; }
   @media (max-width: 700px) { .ed { padding: 14px 16px; } }
@@ -106,7 +110,7 @@
 
 <div id="editor" hidden class="ed"></div>
 
-<script src="config.js?v=9"></script><script src="common.js?v=9"></script>
+<script src="config.js?v=10"></script><script src="common.js?v=10"></script>
 <script>
 const LADDER = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
 let key = new URLSearchParams(location.search).get('key');
@@ -269,12 +273,38 @@ function millStage(m) {
   return h;
 }
 
+let lastBuzzKey = '', audioCtx = null;
+function buzzAlert() {
+  try { navigator.vibrate && navigator.vibrate([120, 60, 120]); } catch {}
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime;
+    o.type = 'square'; o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(1175, t + .12);
+    g.gain.setValueAtTime(.18, t); g.gain.exponentialRampToValueAtTime(.001, t + .35);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + .36);
+  } catch {}
+}
 function melodyStage(m) {
   let h = `<div class="stage-head"><span class="tag">${esc(m.title)}</span><h2>Угадай мелодию</h2><span class="grow"></span>
     <button class="btn sm ghost" data-hint>${showHint ? 'Скрыть ответы' : 'Показать ответы'}</button>
     <button class="btn sm ghost" data-act="final">К итогам</button>
     <button class="btn sm ghost" data-act="lobby" data-confirm="Прервать игру и вернуться в лобби?">В лобби</button></div>`;
-  if (m.cur) {
+  if (m.cur && m.phase === 'buzzed') {
+    // Big, unmissable: who pressed first. Beep + vibration once per press.
+    const key = m.cur.c + '-' + m.cur.r + '-' + m.buzzName + '-' + m.lockedNames.length;
+    if (key !== lastBuzzKey) { lastBuzzKey = key; buzzAlert(); }
+    h += `<div class="buzzed pop"><div class="k">${esc(m.cur.cat)} · ${m.cur.points} · нажал(а) первым(ой)</div>
+      <div class="name">${esc(m.buzzName)}</div>
+      <div class="row wrap" style="margin-top:14px">
+        <button class="btn ok" data-act="judge" data-ok="1">Верно +${m.cur.points}</button>
+        <button class="btn bad" data-act="judge" data-ok="0">Неверно −${m.cur.points}</button>
+        <span class="grow"></span>
+        <button class="btn sm ghost" data-act="closeCell" title="Клетка сгорает">Никто не угадал</button>
+        <button class="btn sm ghost" data-act="cancelCell" title="Вернуть клетку на поле">Отменить</button></div>
+      ${showHint ? `<div class="hint" style="margin-top:10px">Ответ: <b>${esc(m.answer)}</b></div>` : ''}</div>`;
+  } else if (m.cur) {
+    lastBuzzKey = '';
     h += `<div class="now-cell pop"><div><div class="mute" style="font-size:13px">${esc(m.cur.cat)} · ${m.cur.points}</div>`;
     if (m.phase === 'open') h += `<div class="who">Включай музыку — ждём кнопку</div>${m.lockedNames.length ? `<div class="mute" style="font-size:13px">Уже ошиблись: ${m.lockedNames.map(esc).join(', ')}</div>` : ''}`;
     else h += `<div class="who">Отвечает <span class="gold">${esc(m.buzzName)}</span></div>`;
