@@ -7,7 +7,7 @@
 <title>Игра</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=12">
 <style>
   body { padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); }
   main { max-width: 520px; margin: 0 auto; }
@@ -20,6 +20,12 @@
   .status { text-align: center; padding: 14px; font-weight: 700; }
   .big-msg { font-family: var(--display); font-size: 24px; text-align: center; margin: 22px 0 8px; }
   .board .cat { grid-template-columns: repeat(var(--n,5), minmax(0, 1fr)); }
+  .codein { font-family: var(--mono); font-size: 26px; font-weight: 800; letter-spacing: .3em; text-align: center; text-transform: uppercase; }
+  .codein::placeholder { font-family: 'Golos Text', system-ui, sans-serif; font-size: 16px; font-weight: 500; letter-spacing: normal; text-transform: none; }
+  .err { margin: 0; color: #ff9aa0; font-weight: 600; text-align: center; }
+  .or { display: flex; align-items: center; gap: 12px; margin: 30px 0 22px; color: var(--mute); font-size: 14px; }
+  .or::before, .or::after { content: ''; flex: 1; height: 2px; background: var(--line); }
+  a.btn { display: block; text-align: center; text-decoration: none; }
   .top span:first-child, .hero h1, .q, .big-msg { overflow-wrap: anywhere; }
   .top span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; }
   .board .cname { grid-column: 1 / -1; background: none; border: 0; padding: 6px 2px 0; color: var(--mute); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
@@ -28,17 +34,19 @@
 </head>
 <body>
 <main id="app"></main>
-<script src="config.js?v=10"></script><script src="common.js?v=10"></script>
+<script src="config.js?v=12"></script><script src="common.js?v=12"></script>
 <script>
 let pid = null;
 try { pid = localStorage.getItem('pid'); } catch {}
 if (!pid) { pid = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now()); try { localStorage.setItem('pid', pid); } catch {} }
 let name = '';
 let S = null, joined = false, lastBuzz = null;
+const ROOM = (new URLSearchParams(location.search).get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
 const app = $('#app');
 
 const net = connect({
-  open() { net.send({ t: 'join', pid }); }, // known device -> straight back in; new -> name form
+  open() { if (ROOM) net.send({ t: 'join', room: ROOM, pid }); }, // known device -> straight back in; new -> name form
+  noRoom() { joined = false; S = null; renderHome('Комнаты с кодом ' + ROOM + ' нет. Проверь код или спроси у ведущего новую ссылку.'); },
   needName() { joined = false; renderJoin(); },
   rejected() { joined = false; S = null; app.innerHTML = `<div class="hero"><h1>Хост не пустил</h1><p class="mute">Можно попробовать ещё раз</p><button class="btn" onclick="location.reload()">Ещё раз</button></div>`; },
   closed() { joined = false; S = null; app.innerHTML = `<div class="hero pop"><h1>Игра уже идёт</h1><p class="mute" style="margin-top:12px">Вход закрыт. Если ты уже играл(а) — введи то же имя, что было.</p><button class="btn" style="margin-top:18px" onclick="renderJoin()">Ввести имя</button></div>`; },
@@ -48,7 +56,7 @@ const net = connect({
 
 function renderJoin() {
   app.innerHTML = `<div class="hero">
-    <p class="tag">День рождения · игры</p>
+    <p class="tag">Комната ${esc(ROOM)}</p>
     <h1 style="margin-top:16px">Как тебя зовут?</h1>
     <p class="mute">Напиши имя — под ним ты будешь в таблице очков.</p>
   </div>
@@ -58,11 +66,35 @@ function renderJoin() {
   </form>`;
   $('#jf').onsubmit = e => {
     e.preventDefault(); name = $('#nm').value.trim(); if (!name) return;
-        net.send({ t: 'join', pid, name });
+        net.send({ t: 'join', room: ROOM, pid, name });
   };
   $('#nm').focus();
 }
-app.innerHTML = '<p class="center mute" style="margin-top:40vh">Подключаемся…</p>';
+// Home: enter a room code, or become a host and create a room.
+function renderHome(err) {
+  app.innerHTML = `<div class="hero">
+    <p class="tag">Игры для компании</p>
+    <h1 style="margin-top:16px">Есть код комнаты?</h1>
+    <p class="mute">Его покажет ведущий на своём экране, рядом с QR-кодом.</p>
+  </div>
+  <form id="rf" class="col">
+    <input id="code" maxlength="6" placeholder="Например, K7QX" autocomplete="off" autocapitalize="characters" class="codein" required>
+    ${err ? `<p class="err">${esc(err)}</p>` : ''}
+    <button class="btn">Войти в комнату</button>
+  </form>
+  <div class="or"><span>или</span></div>
+  <div class="col center">
+    <p class="mute" style="margin:0">Хочешь провести игру сам?</p>
+    <a class="btn ghost" href="host.html?new=1">Создать комнату</a>
+  </div>`;
+  $('#rf').onsubmit = e => {
+    e.preventDefault();
+    const c = $('#code').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (c) location.search = '?room=' + c;
+  };
+}
+if (ROOM) app.innerHTML = '<p class="center mute" style="margin-top:40vh">Подключаемся…</p>';
+else renderHome();
 
 function topBar() {
   return `<div class="top"><span class="mute">${esc(S.me.name)}</span><span class="score">${fmt(S.me.score)}</span></div>`;
