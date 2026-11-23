@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' wss://mathioboard.com ws: wss:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#120e33">
+<title>Экран для ТВ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=15">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous"></script>
+<style>
+  /* Sized for a TV across the room: everything scales with the viewport. */
+  html { font-size: clamp(14px, 1.15vw, 30px); }
+  body { min-height: 100vh; overflow: hidden; }
+  .tv { display: flex; flex-direction: column; height: 100vh; padding: 2.2rem 3rem; gap: 1.6rem; }
+  .bar { display: flex; align-items: center; gap: 1.2rem; }
+  .bar .brand { font-family: var(--display); font-size: 1.4rem; }
+  .bar .join { margin-left: auto; font-size: 1.05rem; color: var(--mute); }
+  .bar .join b { font-family: var(--mono); color: var(--gold); letter-spacing: .18em; font-size: 1.5rem; margin-left: .4rem; }
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+  h1 { font-size: 3.2rem; }
+
+  /* lobby */
+  .lobby { display: grid; grid-template-columns: auto 1fr; gap: 3.5rem; align-items: center; }
+  .qrbox { background: #fff; padding: 1.1rem; border-radius: 1rem; box-shadow: 0 .5rem 0 var(--shadow); line-height: 0; }
+  .qrbox img, .qrbox canvas { width: 19rem !important; height: 19rem !important; }
+  .lobby .code { font-family: var(--mono); font-weight: 800; font-size: 6.5rem; letter-spacing: .25em; color: var(--gold); line-height: 1; margin: .6rem 0 1rem; }
+  .lobby .url { font-size: 1.4rem; color: var(--mute); }
+  .chips { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 2rem; }
+  .chips span { padding: .45rem 1rem; border-radius: .6rem; background: var(--panel); border: 2px solid var(--line); font-weight: 700; font-size: 1.15rem; }
+
+  /* millionaire */
+  .mill { display: grid; grid-template-columns: minmax(0, 1fr) 15rem; gap: 2.5rem; align-items: center; }
+  .qbar { --cut: 2.2rem; }
+  .qbar > div { font-size: 2.1rem; padding: 2rem 4rem; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem 1.6rem; margin-top: 2rem; }
+  .opt { --cut: 1.6rem; }
+  .opt > span { min-height: 5.2rem; font-size: 1.6rem; padding: .8rem 2.6rem; }
+  .opt .cnt { font-size: 1.3rem; }
+  .ladder { font-size: 1.05rem; }
+  .meta { display: flex; gap: 1rem; align-items: center; margin-top: 1.6rem; font-size: 1.3rem; }
+  .lifeline { font-size: 1.3rem; }
+  .lifeline .num { font-size: 3rem !important; }
+
+  /* melody */
+  .board .cname { font-size: 1.15rem; }
+  .cell { min-height: 4.6rem; font-size: 1.9rem; }
+  .callout { margin-bottom: 1.4rem; padding: 1.2rem 1.6rem; border-radius: 1rem; background: var(--panel); border: 2px solid var(--line); font-size: 1.6rem; }
+  .callout .k { font-family: var(--mono); font-size: 1rem; color: var(--mute); text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }
+  .buzzed { padding: 2.4rem 3rem; border-radius: 1.4rem; background: var(--sel); color: #1f0d00; border: 4px solid #a54800; box-shadow: 0 .6rem 0 #a54800; text-align: center; }
+  .buzzed .k { font-family: var(--mono); font-weight: 800; font-size: 1.2rem; text-transform: uppercase; letter-spacing: .08em; }
+  .buzzed .name { font-family: var(--display); font-size: 7rem; line-height: 1.05; margin-top: .6rem; overflow-wrap: anywhere; }
+
+  /* final */
+  .final { max-width: 60rem; margin: 0 auto; width: 100%; }
+  .final .pod .pname { font-size: 1.6rem; } .final .pod.p1 .pname { font-size: 2rem; }
+  .final .pod .pscore { font-size: 1.4rem; }
+  .final .pod.p1 .block { height: 14rem; } .final .pod.p2 .block { height: 10rem; } .final .pod.p3 .block { height: 7rem; }
+  .final .pod .block span { font-size: 4rem; } .final .pod.p1 .block span { font-size: 5.5rem; }
+  .final .lb .it { font-size: 1.3rem; }
+
+  .center-msg { text-align: center; } .center-msg p { font-size: 1.4rem; color: var(--mute); }
+  #sound { position: fixed; right: 1.4rem; bottom: 1.4rem; }
+  .side-lb { font-size: 1.1rem; }
+</style>
+</head>
+<body>
+<div class="tv">
+  <div class="bar"><span class="brand">Вечеринка</span><span class="join" id="join"></span></div>
+  <main id="app"><div class="center-msg"><p>Подключаемся…</p></div></main>
+</div>
+<button class="btn ghost sm" id="sound">🔇 Включить звук и весь экран</button>
+<script src="config.js?v=15"></script><script src="common.js?v=15"></script>
+<script>
+// Spectator screen for the TV: no controls, no answers before they are revealed.
+// Opened from the host panel; the link carries a secret token, so a room code alone is not enough.
+const qs = new URLSearchParams(location.search);
+const ROOM = (qs.get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+const TOKEN = (qs.get('t') || '').slice(0, 64);
+const app = $('#app');
+const guestUrl = location.origin + location.pathname.replace(/tv(\.html)?$/, '') + '?room=' + ROOM;
+let S = null, qrFor = '', lastBuzz = '', lastReveal = '';
+
+if (!ROOM || !TOKEN) fail();
+const net = ROOM && TOKEN ? connect({
+  open() { net.send({ t: 'watch', room: ROOM, token: TOKEN }); },
+  noRoom: fail,
+  roomGone() { app.innerHTML = `<div class="center-msg"><h1>Комната закрыта</h1><p>Ведущий удалил комнату ${esc(ROOM)}.</p></div>`; },
+  error(m) { app.innerHTML = `<div class="center-msg"><h1>Не получилось</h1><p>${esc(m.text)}</p></div>`; },
+  state(m) { S = m.s; S.at = Date.now(); render(); },
+}) : null;
+
+function fail() {
+  app.innerHTML = `<div class="center-msg"><h1>Экран для ТВ</h1><p>Открой его кнопкой «Экран для ТВ» на пульте ведущего — по обычному коду комнаты он не откроется.</p></div>`;
+}
+
+function render() {
+  $('#join').innerHTML = S.mode === 'lobby' ? '' : `Заходи: <b>${esc(ROOM)}</b>`;
+  let h = '';
+  if (S.mode === 'lobby') h = lobby();
+  else if (S.mode === 'final') h = `<div class="final"><h1 class="center" style="margin-bottom:2rem">Итоги</h1>${podiumHtml(S.players)}</div>`;
+  else if (S.mode === 'mill' && S.mill) h = mill(S.mill);
+  else if (S.mode === 'melody' && S.melody) h = melody(S.melody);
+  app.innerHTML = h;
+  if (S.mode === 'lobby') drawQr();
+  else qrFor = '';
+}
+
+function lobby() {
+  return `<div class="lobby">
+    <div class="qrbox" id="qr"></div>
+    <div>
+      <h1>Заходите в игру</h1>
+      <p class="url" style="margin-top:1rem">Наведи камеру на QR или открой<br><b style="color:var(--ink)">${esc(guestUrl.replace(/^https?:\/\//, '').replace(/\?room=.*$/, ''))}</b> и введи код</p>
+      <div class="code">${esc(ROOM)}</div>
+      <div class="mute" style="font-size:1.2rem">${S.open ? `В комнате ${S.players.length}` : 'Вход закрыт'}</div>
+      <div class="chips">${S.players.map(p => `<span>${esc(p.name)}</span>`).join('')}</div>
+    </div></div>`;
+}
+function drawQr() {
+  const el = $('#qr'); if (!el) return;
+  if (qrFor === guestUrl && el.childNodes.length) return;
+  el.innerHTML = ''; qrFor = guestUrl;
+  if (window.QRCode) new QRCode(el, { text: guestUrl, width: 400, height: 400, correctLevel: QRCode.CorrectLevel.M });
+  else el.textContent = ROOM;
+}
+
+function mill(m) {
+  const revealed = m.phase !== 'question';
+  const key = m.idx + '-' + m.phase;
+  if (revealed && key !== lastReveal) { lastReveal = key; beep('reveal'); }
+  let h = `<div class="mill"><div>
+    <div class="row" style="justify-content:space-between;margin-bottom:1.4rem"><span class="tag" style="font-size:1rem">Вопрос ${m.idx + 1} из ${m.total}</span><span class="num gold" style="font-size:1.8rem">${fmt(m.value)}</span></div>
+    <div class="qbar"><div>${esc(m.q)}</div></div><div class="opts">`;
+  m.a.forEach((t, i) => {
+    let c = m.hidden.includes(i) ? 'gone' : '';
+    if (revealed && i === m.correct) c = 'right';
+    h += `<div class="opt ${c}"><span><b>${L[i]}:</b> ${esc(t)}${m.counts ? `<span class="cnt">${m.counts[i]}</span>` : ''}</span></div>`;
+  });
+  h += `</div>${lifelinesHtml(m, S.at)}
+    <div class="meta">${revealed ? `<span class="gold" style="font-weight:800">Правильный ответ: ${L[m.correct]}</span>` : `<span class="tag" style="font-size:1.1rem">Ответили ${m.answered} из ${m.players}</span>`}</div>
+    </div><div class="ladder">${m.ladder.map((v, i) => `<div class="${i < m.idx ? 'past' : i === m.idx ? 'now' : ''}"><span>${i + 1}</span><span>${fmt(v)}</span></div>`).join('')}</div></div>`;
+  return h;
+}
+
+function melody(m) {
+  if (m.phase === 'buzzed') {
+    const key = m.cur.c + '-' + m.cur.r + '-' + m.buzzName + '-' + m.lockedNames.length;
+    if (key !== lastBuzz) { lastBuzz = key; beep('buzz'); }
+    return `<div class="buzzed pop"><div class="k">${esc(m.cur.cat)} · ${m.cur.points} · отвечает</div><div class="name">${esc(m.buzzName)}</div></div>`;
+  }
+  lastBuzz = '';
+  let h = '';
+  if (m.phase === 'open') h += `<div class="callout pop"><div class="k">${esc(m.cur.cat)} · ${m.cur.points}</div>
+      <div style="font-weight:800;margin-top:.3rem">Слушаем! Знаешь песню — жми «Ответить» на телефоне</div>
+      ${m.lockedNames.length ? `<div class="mute" style="font-size:1.1rem;margin-top:.3rem">Уже ошиблись: ${m.lockedNames.map(esc).join(', ')}</div>` : ''}</div>`;
+  else if (m.last) h += `<div class="callout pop"><div class="k">Это была</div>
+      <div style="font-weight:800;margin-top:.3rem">${esc(m.last.answer)}</div>
+      <div class="${m.last.winner ? 'gold' : 'mute'}" style="font-size:1.2rem;margin-top:.2rem">${m.last.winner ? esc(m.last.winner) + ' +' + m.last.points : 'Никто не угадал'}${m.chooserName ? ' · выбирает ' + esc(m.chooserName) : ''}</div></div>`;
+  else if (m.chooserName) h += `<div class="callout"><div class="k">Выбирает</div><div style="font-weight:800">${esc(m.chooserName)}</div></div>`;
+  return h + boardHtml(m, false);
+}
+
+// Sound: browsers only allow it after a tap on the page, hence the button.
+let audioCtx = null;
+$('#sound').onclick = () => {
+  try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch {}
+  try { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); } catch {}
+  $('#sound').hidden = true;
+};
+function beep(kind) {
+  if (!audioCtx) return;
+  try {
+    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = kind === 'buzz' ? 'square' : 'triangle';
+    const notes = kind === 'buzz' ? [880, 1175] : [523, 659, 784];
+    notes.forEach((f, i) => o.frequency.setValueAtTime(f, t + i * .12));
+    g.gain.setValueAtTime(.2, t); g.gain.exponentialRampToValueAtTime(.001, t + .12 * notes.length + .25);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + .12 * notes.length + .3);
+  } catch {}
+}
+</script>
+</body>
+</html>

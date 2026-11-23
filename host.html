@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' wss://mathioboard.com ws: wss:; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="theme-color" content="#120e33">
 <title>Пульт хоста</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=14">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="style.css?v=15">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous"></script>
 <style>
   body { padding: 0 0 40px; }
   header { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 10; }
@@ -94,6 +96,7 @@
     <div class="panel" id="roomPanel">
       <div class="roomcode"><span class="mute">Код комнаты</span><b id="code">····</b>
         <button class="btn sm ghost" id="newRoomBtn" title="Создать новую пустую комнату">Новая комната</button></div>
+      <div class="row wrap" style="margin-bottom:14px"><button class="btn sm" id="tvBtn" title="Чистый экран для телевизора: без кнопок и ответов">Экран для ТВ</button><button class="btn sm ghost" id="tvCopy" title="Скопировать ссылку на экран для ТВ">Ссылка для ТВ</button></div>
       <button class="btn sm ghost" id="deviceBtn" style="margin-bottom:14px" title="Ссылка, по которой ты откроешь этот пульт и свои игры на другом телефоне или компьютере">Мой пульт на другом устройстве</button>
       <h3>Вход в комнату <button class="btn sm" id="openBtn"></button></h3>
       <p class="mute" id="closedNote" style="margin:0;font-size:14px">Вход закрыт — новые гости не попадут. Вылетевшие игроки могут вернуться: та же ссылка или то же имя.</p>
@@ -108,7 +111,7 @@
 
 <div id="editor" hidden class="ed"></div>
 
-<script src="config.js?v=14"></script><script src="common.js?v=14"></script>
+<script src="config.js?v=15"></script><script src="common.js?v=15"></script>
 <script>
 const LADDER = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
 // This device's host id: anyone can be a host, no password. Games are kept per host id.
@@ -146,6 +149,14 @@ const net = connect({
 });
 // Your host link = your account. Copy it to open this panel (and your games) on another device.
 // It is deliberately not shown as a QR: the panel is often on a TV in front of guests.
+// TV screen: spectators-only view with a secret token, so you can drive the game from your phone.
+const tvLink = () => S && S.watch ? location.origin + location.pathname.replace(/host(\.html)?$/, '') + 'tv.html?room=' + roomCode + '&t=' + encodeURIComponent(S.watch) : null;
+$('#tvBtn').onclick = () => { const l = tvLink(); if (l) window.open(l, '_blank', 'noopener'); };
+$('#tvCopy').onclick = async () => {
+  const l = tvLink(); if (!l) return;
+  try { await navigator.clipboard.writeText(l); toast('Ссылка на экран для ТВ скопирована — открой её в браузере телевизора или ноутбука'); }
+  catch { prompt('Открой эту ссылку на телевизоре или ноутбуке:', l); }
+};
 $('#deviceBtn').onclick = async () => {
   const link = location.origin + location.pathname + '?key=' + encodeURIComponent(owner);
   try { await navigator.clipboard.writeText(link); toast('Ссылка скопирована. Не отправляй её гостям — это ключ к твоим играм.'); }
