@@ -7,7 +7,7 @@
 <title>Пульт хоста</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   body { padding: 0 0 40px; }
@@ -107,7 +107,7 @@
 
 <div id="editor" hidden class="ed"></div>
 
-<script src="config.js?v=12"></script><script src="common.js?v=12"></script>
+<script src="config.js?v=13"></script><script src="common.js?v=13"></script>
 <script>
 const LADDER = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
 // This device's host id: anyone can be a host, no password. Games are kept per host id.
@@ -138,6 +138,9 @@ const net = connect({
     if (tab === 'editor' && !draft) renderEditorList();
   },
   saved() { toast('Сохранено'); },
+  error(m) { toast(m.text); },
+  // Another screen of ours deleted this room: go to our latest room (server picks it).
+  roomGone(m) { S = null; toast('Комната ' + m.code + ' удалена'); net.send({ t: 'host', owner, room: m.code }); },
 });
 $('#newRoomBtn').onclick = () => {
   if (confirm('Создать новую пустую комнату? Гости из этой комнаты в новую не перейдут — им нужен новый код.')) send('newRoom');
@@ -195,7 +198,22 @@ function renderLive() {
       ${S.mode === 'melody' ? `<button class="icon-btn" title="Дать выбор клетки" data-act="setChooser" data-pid="${p.id}">☝</button>` : ''}
       <button class="icon-btn" title="Удалить" data-act="reject" data-pid="${p.id}" data-confirm="Удалить игрока ${esc(p.name)}?">✕</button></div>`).join('')
       : '<p class="mute" style="margin:0">Пока никого. Покажи QR гостям.</p>') + `</div>`;
+  // My rooms: open another one or delete old ones.
+  const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'только что' : m < 60 ? m + ' мин назад' : m < 1440 ? Math.round(m / 60) + ' ч назад' : Math.round(m / 1440) + ' дн назад'; };
+  const modeName = { lobby: 'лобби', mill: 'миллионер', melody: 'угадай мелодию', final: 'итоги' };
+  s += `<div class="panel"><h3>Мои комнаты · ${S.myRooms.length}</h3>` + S.myRooms.map(r => `<div class="pl">
+      <b class="num" style="letter-spacing:.12em;${r.current ? 'color:var(--gold)' : ''}">${esc(r.code)}</b>
+      <span class="grow mute" style="font-size:13px">${r.current ? 'ты здесь · ' : ''}${r.players} игр. · ${modeName[r.mode] || ''} · ${ago(r.updated)}</span>
+      ${r.current ? '' : `<button class="btn sm ghost" data-openroom="${esc(r.code)}">Открыть</button>`}
+      <button class="icon-btn" title="Удалить комнату" data-delroom="${esc(r.code)}" data-cur="${r.current ? 1 : ''}" data-n="${r.players}">✕</button></div>`).join('') +
+    `<p class="mute" style="margin:10px 0 0;font-size:13px">Комнаты без дела 3 дня удаляются сами. Игры при этом остаются.</p></div>`;
   $('#side').innerHTML = s;
+  document.querySelectorAll('[data-openroom]').forEach(b => b.onclick = () => send('openRoom', { code: b.dataset.openroom }));
+  document.querySelectorAll('[data-delroom]').forEach(b => b.onclick = () => {
+    const d = b.dataset;
+    const msg = `Удалить комнату ${d.delroom}?` + (+d.n ? ` В ней ${d.n} игр. — их выкинет на главную.` : '') + (d.cur ? ' Ты сейчас в ней: перейдёшь в другую.' : '') + ' Это нельзя отменить.';
+    if (confirm(msg)) send('deleteRoom', { code: d.delroom });
+  });
   $('#step').onchange = e => step = +e.target.value;
   // room open / closed
   $('#invitePanel').hidden = !S.open;

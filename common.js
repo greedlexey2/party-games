@@ -25,7 +25,7 @@ function connect(h) {
 function leaderboard(players, meId) {
   if (!players.length) return '<p class="mute center">Пока никого нет</p>';
   return '<div class="lb">' + players.map((p, i) =>
-    `<div class="it ${p.online === false ? 'off' : ''}" ${p.id === meId ? 'style="border-color:var(--sel)"' : ''}>
+    `<div class="it ${p.online === false ? 'off' : ''}" ${p.me || (meId && p.id === meId) ? 'style="border-color:var(--sel)"' : ''}>
       <span class="pos">${i + 1}</span><span class="grow">${esc(p.name)}</span><span class="sc">${fmt(p.score)}</span></div>`).join('') + '</div>';
 }
 

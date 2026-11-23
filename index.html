@@ -7,7 +7,7 @@
 <title>Игра</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 <style>
   body { padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); }
   main { max-width: 520px; margin: 0 auto; }
@@ -34,7 +34,7 @@
 </head>
 <body>
 <main id="app"></main>
-<script src="config.js?v=12"></script><script src="common.js?v=12"></script>
+<script src="config.js?v=13"></script><script src="common.js?v=13"></script>
 <script>
 let pid = null;
 try { pid = localStorage.getItem('pid'); } catch {}
@@ -46,6 +46,8 @@ const app = $('#app');
 
 const net = connect({
   open() { if (ROOM) net.send({ t: 'join', room: ROOM, pid }); }, // known device -> straight back in; new -> name form
+  roomGone() { joined = false; S = null; renderHome('Ведущий закрыл комнату ' + ROOM + '. Спроси у него новый код.'); },
+  full() { joined = false; S = null; renderHome('В комнате ' + ROOM + ' уже нет мест.'); },
   noRoom() { joined = false; S = null; renderHome('Комнаты с кодом ' + ROOM + ' нет. Проверь код или спроси у ведущего новую ссылку.'); },
   needName() { joined = false; renderJoin(); },
   rejected() { joined = false; S = null; app.innerHTML = `<div class="hero"><h1>Хост не пустил</h1><p class="mute">Можно попробовать ещё раз</p><button class="btn" onclick="location.reload()">Ещё раз</button></div>`; },
