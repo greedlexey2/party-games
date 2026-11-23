@@ -7,7 +7,7 @@
 <title>Пульт хоста</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=14">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   body { padding: 0 0 40px; }
@@ -94,6 +94,7 @@
     <div class="panel" id="roomPanel">
       <div class="roomcode"><span class="mute">Код комнаты</span><b id="code">····</b>
         <button class="btn sm ghost" id="newRoomBtn" title="Создать новую пустую комнату">Новая комната</button></div>
+      <button class="btn sm ghost" id="deviceBtn" style="margin-bottom:14px" title="Ссылка, по которой ты откроешь этот пульт и свои игры на другом телефоне или компьютере">Мой пульт на другом устройстве</button>
       <h3>Вход в комнату <button class="btn sm" id="openBtn"></button></h3>
       <p class="mute" id="closedNote" style="margin:0;font-size:14px">Вход закрыт — новые гости не попадут. Вылетевшие игроки могут вернуться: та же ссылка или то же имя.</p>
     </div>
@@ -107,7 +108,7 @@
 
 <div id="editor" hidden class="ed"></div>
 
-<script src="config.js?v=13"></script><script src="common.js?v=13"></script>
+<script src="config.js?v=14"></script><script src="common.js?v=14"></script>
 <script>
 const LADDER = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
 // This device's host id: anyone can be a host, no password. Games are kept per host id.
@@ -117,7 +118,8 @@ const store = { get: k => { try { return localStorage.getItem(k); } catch { retu
 let owner = qs.get('key') || store.get('hostKey');
 if (!owner || !/^[A-Za-z0-9_-]{6,64}$/.test(owner)) owner = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36)).replace(/[^A-Za-z0-9_-]/g, '');
 store.set('hostKey', owner);
-let roomCode = (qs.get('room') || store.get('hostRoom') || '').toUpperCase();
+// Opened via "my panel on another device" (?key=…, no room yet): ask for my latest room, not a new one.
+let roomCode = (qs.get('room') || store.get('hostRoom') || (qs.get('key') ? 'LAST' : '')).toUpperCase();
 let S = null, tab = 'live', showHint = false, draft = null, step = 100;
 
 const net = connect({
@@ -142,6 +144,13 @@ const net = connect({
   // Another screen of ours deleted this room: go to our latest room (server picks it).
   roomGone(m) { S = null; toast('Комната ' + m.code + ' удалена'); net.send({ t: 'host', owner, room: m.code }); },
 });
+// Your host link = your account. Copy it to open this panel (and your games) on another device.
+// It is deliberately not shown as a QR: the panel is often on a TV in front of guests.
+$('#deviceBtn').onclick = async () => {
+  const link = location.origin + location.pathname + '?key=' + encodeURIComponent(owner);
+  try { await navigator.clipboard.writeText(link); toast('Ссылка скопирована. Не отправляй её гостям — это ключ к твоим играм.'); }
+  catch { prompt('Скопируй ссылку и открой на другом устройстве. Никому её не отправляй:', link); }
+};
 $('#newRoomBtn').onclick = () => {
   if (confirm('Создать новую пустую комнату? Гости из этой комнаты в новую не перейдут — им нужен новый код.')) send('newRoom');
 };
@@ -183,8 +192,9 @@ function renderLive() {
   let s = '';
   if (S.pending.length) {
     s += `<div class="panel" style="border-color:var(--sel)"><h3>Хотят войти · ${S.pending.length} <button class="btn sm ok" data-act="approveAll">Пустить всех</button></h3>` +
-      S.pending.map(p => `<div class="pl"><span class="grow" style="font-weight:700">${esc(p.name)}</span>
-        <button class="btn sm ok" data-act="approve" data-pid="${p.id}">Пустить</button>
+      S.pending.map(p => `<div class="pl"><span class="grow"><b>${esc(p.name)}</b>${p.reclaim
+          ? `<br><span class="mute" style="font-size:13px">хочет вернуться с другого телефона · ${fmt(p.score)} очков</span>` : ''}</span>
+        <button class="btn sm ok" data-act="approve" data-pid="${p.id}">${p.reclaim ? 'Это он(а)' : 'Пустить'}</button>
         <button class="icon-btn" title="Не пускать" data-act="reject" data-pid="${p.id}">✕</button></div>`).join('') + `</div>`;
   }
   s += `<div class="panel"><h3>Игроки · ${S.players.length}
@@ -226,7 +236,7 @@ function renderLive() {
   // stage
   let h = '';
   if (S.mode === 'lobby') h = lobby();
-  else if (S.mode === 'final') h = `<div class="stage-head"><h2>Итоги</h2><span class="grow"></span><button class="btn ghost" data-act="lobby">В лобби</button></div><div style="max-width:620px">${leaderboard(S.players)}</div>`;
+  else if (S.mode === 'final') h = `<div class="stage-head"><h2>Итоги</h2><span class="grow"></span><button class="btn ghost" data-act="lobby">В лобби</button></div><div style="max-width:620px">${podiumHtml(S.players)}</div>`;
   else if (S.mode === 'mill' && S.mill) h = millStage(S.mill);
   else if (S.mode === 'melody' && S.melody) h = melodyStage(S.melody);
   $('#stage').innerHTML = h;

@@ -155,6 +155,22 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 .lb .it .sc { margin-left: auto; font-family: var(--mono); font-weight: 800; color: var(--gold); }
 .off { opacity: .45; }
 
+/* podium */
+.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; margin-top: 10px; }
+.pod { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+.pod .pname { font-weight: 800; font-size: 15px; max-width: 100%; overflow-wrap: anywhere; line-height: 1.2; }
+.pod .pscore { font-family: var(--mono); font-weight: 800; color: var(--gold); margin: 4px 0 8px; }
+.pod .block { width: 100%; border-radius: 10px 10px 0 0; border: 2px solid var(--line); border-bottom: 0; background: var(--panel); display: flex; justify-content: center; padding-top: 10px; }
+.pod .block span { font-family: var(--display); font-size: 34px; color: var(--mute); }
+.pod.p1 .block { height: 140px; background: var(--gold); border-color: var(--gold-dk); }
+.pod.p1 .block span { color: #251600; font-size: 46px; }
+.pod.p1 .pname { font-size: 18px; }
+.pod.p2 .block { height: 100px; }
+.pod.p3 .block { height: 72px; }
+.pod.me .pname { color: var(--sel); }
+.pod.empty { visibility: hidden; }
+.podium + .lb .it:first-child { border-color: var(--line); }
+.podium + .lb .it:first-child .pos { color: var(--mute); }
 .tag {
   display: inline-block; padding: 3px 10px; border-radius: 6px; font-family: var(--mono); font-size: 12px; font-weight: 700;
   text-transform: uppercase; letter-spacing: .06em; background: var(--well); color: var(--gold-hi); border: 1px solid var(--line);

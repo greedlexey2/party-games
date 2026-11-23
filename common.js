@@ -29,6 +29,19 @@ function leaderboard(players, meId) {
       <span class="pos">${i + 1}</span><span class="grow">${esc(p.name)}</span><span class="sc">${fmt(p.score)}</span></div>`).join('') + '</div>';
 }
 
+// Final screen: top three on stands (2nd, 1st, 3rd), everyone else listed below.
+function podiumHtml(players) {
+  if (!players.length) return '<p class="mute center">Никто не играл</p>';
+  const top = players.slice(0, 3), rest = players.slice(3);
+  const order = [top[1], top[0], top[2]], place = [2, 1, 3];
+  const stand = (p, i) => p ? `<div class="pod p${place[i]} ${p.me ? 'me' : ''}">
+      <div class="pname">${esc(p.name)}</div><div class="pscore">${fmt(p.score)}</div>
+      <div class="block"><span>${place[i]}</span></div></div>` : '<div class="pod empty"></div>';
+  return `<div class="podium">${order.map(stand).join('')}</div>` +
+    (rest.length ? `<div class="lb" style="margin-top:18px">${rest.map((p, i) => `<div class="it ${p.online === false ? 'off' : ''}" ${p.me ? 'style="border-color:var(--sel)"' : ''}>
+      <span class="pos">${i + 4}</span><span class="grow">${esc(p.name)}</span><span class="sc">${fmt(p.score)}</span></div>`).join('')}</div>` : '');
+}
+
 function boardHtml(mel, clickable) {
   const n = Math.max(...mel.categories.map(c => c.cells.length), 1);
   return `<div class="board">` + mel.categories.map((c, ci) =>

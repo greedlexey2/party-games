@@ -7,7 +7,7 @@
 <title>Игра</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=14">
 <style>
   body { padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); }
   main { max-width: 520px; margin: 0 auto; }
@@ -34,7 +34,7 @@
 </head>
 <body>
 <main id="app"></main>
-<script src="config.js?v=13"></script><script src="common.js?v=13"></script>
+<script src="config.js?v=14"></script><script src="common.js?v=14"></script>
 <script>
 let pid = null;
 try { pid = localStorage.getItem('pid'); } catch {}
@@ -47,6 +47,7 @@ const app = $('#app');
 const net = connect({
   open() { if (ROOM) net.send({ t: 'join', room: ROOM, pid }); }, // known device -> straight back in; new -> name form
   roomGone() { joined = false; S = null; renderHome('Ведущий закрыл комнату ' + ROOM + '. Спроси у него новый код.'); },
+  nameTaken(m) { renderJoin('Имя «' + m.name + '» уже занято в этой комнате. Добавь букву фамилии или смайлик.'); },
   full() { joined = false; S = null; renderHome('В комнате ' + ROOM + ' уже нет мест.'); },
   noRoom() { joined = false; S = null; renderHome('Комнаты с кодом ' + ROOM + ' нет. Проверь код или спроси у ведущего новую ссылку.'); },
   needName() { joined = false; renderJoin(); },
@@ -56,7 +57,7 @@ const net = connect({
   state(m) { S = m.s; S.at = Date.now(); joined = true; render(); },
 });
 
-function renderJoin() {
+function renderJoin(err) {
   app.innerHTML = `<div class="hero">
     <p class="tag">Комната ${esc(ROOM)}</p>
     <h1 style="margin-top:16px">Как тебя зовут?</h1>
@@ -64,6 +65,7 @@ function renderJoin() {
   </div>
   <form id="jf" class="col">
     <input id="nm" maxlength="20" placeholder="Имя" autocomplete="off" required>
+    ${err ? `<p class="err">${esc(err)}</p>` : ''}
     <button class="btn">Отправить заявку</button>
   </form>`;
   $('#jf').onsubmit = e => {
@@ -105,7 +107,7 @@ function topBar() {
 function render() {
   if (!S || !S.me) return renderJoin();
   if (S.me.status === 'pending') {
-    app.innerHTML = `<div class="hero pop"><p class="tag">Заявка отправлена</p><h1 style="margin-top:16px">Ждём ведущего</h1><p class="mute" style="margin-top:12px">Он запустит всех в комнату, когда соберёмся. Не закрывай страницу.</p><p class="namecard">${esc(S.me.name)}</p></div>`;
+    app.innerHTML = `<div class="hero pop">${S.me.reclaim ? `<p class="tag">Возвращение</p><h1 style="margin-top:16px">Ведущий подтвердит, что это ты</h1><p class="mute" style="margin-top:12px">Тогда вернутся и твои очки. Не закрывай страницу.</p>` : `<p class="tag">Заявка отправлена</p><h1 style="margin-top:16px">Ждём ведущего</h1><p class="mute" style="margin-top:12px">Он запустит всех в комнату, когда соберёмся. Не закрывай страницу.</p>`}<p class="namecard">${esc(S.me.name)}</p></div>`;
     return;
   }
   let h = topBar();
@@ -113,7 +115,7 @@ function render() {
     h += `<div class="big-msg">Ты в комнате</div><p class="center mute">Скоро начнём. Смотри на большой экран.</p>
       <h3 style="margin:24px 0 10px;font-size:15px" class="mute">Игроки · ${S.players.length}</h3>${leaderboard(S.players, pid)}`;
   } else if (S.mode === 'final') {
-    h += `<div class="big-msg">Итоги</div>${leaderboard(S.players, pid)}`;
+    h += `<div class="big-msg">Итоги</div>${podiumHtml(S.players)}`;
   } else if (S.mode === 'mill' && S.mill) h += mill(S.mill);
   else if (S.mode === 'melody' && S.melody) h += melody(S.melody);
   app.innerHTML = h;
